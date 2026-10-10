@@ -35,6 +35,23 @@ async function init(){
   $('searchMap').addEventListener('input',renderMapList);$('difficulty').addEventListener('change',renderMapList);
   document.querySelectorAll('[data-filter]').forEach(el=>el.addEventListener('change',()=>{visibleTypes[el.dataset.filter]=el.checked;renderMarkers();}));
   $('zoomIn').addEventListener('click',()=>setZoom(zoom+.15));$('zoomOut').addEventListener('click',()=>setZoom(zoom-.15));$('zoomReset').addEventListener('click',()=>setZoom(1));
+  // Zoom theo vị trí con trỏ: giữ nguyên điểm bản đồ đang nằm dưới chuột.
+  $('mapViewport').addEventListener('wheel',e=>{
+    if($('mapImage').hidden) return;
+    e.preventDefault();
+    const viewport=$('mapViewport');
+    const rect=viewport.getBoundingClientRect();
+    const px=e.clientX-rect.left, py=e.clientY-rect.top;
+    const previousZoom=zoom;
+    const factor=e.deltaY<0?1.12:1/1.12;
+    const nextZoom=Math.max(.5,Math.min(2.5,zoom*factor));
+    if(nextZoom===previousZoom)return;
+    viewport.scrollLeft=(viewport.scrollLeft+px)*nextZoom/previousZoom-px;
+    viewport.scrollTop=(viewport.scrollTop+py)*nextZoom/previousZoom-py;
+    setZoom(nextZoom);
+    viewport.scrollLeft=(viewport.scrollLeft+px)*nextZoom/previousZoom-px;
+    viewport.scrollTop=(viewport.scrollTop+py)*nextZoom/previousZoom-py;
+  },{passive:false});
   $('mapImage').addEventListener('click',handleMapClick);$('pointMap').addEventListener('change',async e=>{if(e.target.value)await selectMap(e.target.value);});
   document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
   if(!configured){setConnection('Chưa cấu hình dữ liệu');renderMapList();$('mapList').innerHTML='<div class="empty">Website đã sẵn sàng về giao diện. Hãy làm theo README để kết nối cơ sở dữ liệu Supabase, sau đó các bản đồ trực tuyến sẽ hiện ở đây.</div>';return;}
