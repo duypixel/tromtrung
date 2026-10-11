@@ -37,3 +37,14 @@
 @media(max-width:1050px){.gallery-shell{grid-template-columns:230px minmax(0,1fr);gap:12px}.gallery-guide{padding:12px}.map-gallery{grid-template-columns:repeat(3,minmax(0,1fr))}.gallery-page{padding:14px}}
 @media(max-width:720px){.gallery-shell{grid-template-columns:1fr}.gallery-guide{position:static}.quick-map-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.quick-map{min-height:76px}.map-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}.gallery-thumb{height:135px}.gallery-intro h1{font-size:23px}}
 @media(max-width:390px){.map-gallery{grid-template-columns:1fr}.gallery-thumb{height:180px}.gallery-filters{grid-template-columns:1fr}.quick-map-grid{gap:5px}}
+
+/* Per-map thumbnail editor and fixed, non-clickable main-door center slot */
+.quick-door-slot{border-color:#ff9d32!important;background:linear-gradient(145deg,#34243a,#171321);cursor:default;box-shadow:inset 0 0 0 1px #ff9d3233}.quick-door-slot .quick-thumb{font-size:23px}.quick-door-slot .quick-arrow{color:#ffbd64}.quick-empty-slot{opacity:.45;cursor:default}.quick-slot-admin{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0 14px}.quick-slot-admin-item{min-width:0;border:1px solid #383449;border-radius:12px;background:#171523;padding:8px;display:flex;flex-direction:column;gap:7px}.quick-slot-admin-item strong{font-size:11px;color:#e8e2f7}.quick-slot-preview{height:58px;display:grid;place-items:center;color:#aaa;font-size:24px;background:#100f1b;border-radius:8px;overflow:hidden}.quick-slot-preview img{width:100%;height:100%;object-fit:contain}.quick-slot-admin-item .file-control{font-size:10px;padding:5px;width:100%;min-width:0}
+
+/* Admin-managed custom website copy */
+.custom-site-text-area{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.custom-site-text{font-size:11px;line-height:1.6;color:#c9c2e0;background:#ffffff06;border:1px solid #ffffff12;border-radius:8px;padding:7px 9px;white-space:normal;overflow-wrap:anywhere}
+.custom-card-label{align-self:flex-start;display:inline-flex;max-width:100%;margin-top:2px;padding:4px 7px;border-radius:5px;background:#28223a;color:#d5c4ff;font-size:9px;font-weight:800;overflow-wrap:anywhere}
+
+/* Sidebar icon-only mode: remove explanatory copy and keep the map tiles. */
+.icon-only-guide{padding:10px!important;align-self:start}.icon-only-guide .quick-map-grid{margin:0}.icon-only-guide .quick-map{min-height:76px;padding:8px 4px}.icon-only-guide .quick-thumb{width:34px;height:34px}.icon-only-guide .quick-map b,.icon-only-guide .quick-number,.icon-only-guide .quick-arrow{display:none}.icon-only-guide .quick-door-slot{cursor:default}.icon-only-guide .quick-layout-hint{font-size:10px;line-height:1.45;color:#b8b4c8;margin:10px 2px 0}.quick-map[draggable="true"]{cursor:grab}.quick-map.dragging{opacity:.4}.quick-map-grid .quick-map img{pointer-events:none}
