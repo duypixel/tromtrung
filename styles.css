@@ -48,3 +48,10 @@
 
 /* Sidebar icon-only mode: remove explanatory copy and keep the map tiles. */
 .icon-only-guide{padding:10px!important;align-self:start}.icon-only-guide .quick-map-grid{margin:0}.icon-only-guide .quick-map{min-height:76px;padding:8px 4px}.icon-only-guide .quick-thumb{width:34px;height:34px}.icon-only-guide .quick-map b,.icon-only-guide .quick-number,.icon-only-guide .quick-arrow{display:none}.icon-only-guide .quick-door-slot{cursor:default}.icon-only-guide .quick-layout-hint{font-size:10px;line-height:1.45;color:#b8b4c8;margin:10px 2px 0}.quick-map[draggable="true"]{cursor:grab}.quick-map.dragging{opacity:.4}.quick-map-grid .quick-map img{pointer-events:none}
+/* Admin can reposition quick-map tiles with mouse, pen, or touch. */
+.quick-map.quick-draggable,.quick-map.quick-drop-target{touch-action:none;user-select:none;-webkit-user-select:none}
+.quick-map.quick-draggable{cursor:grab}
+.quick-map.quick-draggable:active{cursor:grabbing}
+.quick-map.dragging{opacity:.45;transform:scale(.96);border-color:#ffb23d;box-shadow:0 0 0 2px #ff9d3266}
+.quick-map.quick-drop-target{border-style:dashed;border-color:#4abfff66;cursor:crosshair}
+.quick-map.quick-drop-target:has(.quick-thumb){color:#8b88a2}

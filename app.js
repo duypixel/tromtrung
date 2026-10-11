@@ -78,6 +78,31 @@ function editSiteText(id){const t=siteTexts.find(x=>x.id===id);if(!t)return;edit
 async function saveSiteText(){if(!isAdmin()||!db)return;const text=$('siteTextValue').value.trim(),area=$('siteTextArea').value;if(!text)return msg('siteTextMessage','Nhập nội dung chữ trước khi lưu.','error');let result;if(editingSiteTextId){result=await db.from('site_texts').update({area,text,enabled:$('siteTextEnabled').checked}).eq('id',editingSiteTextId).select().single();}else if(area==='rare_badge'||area==='default_badge'){const existing=siteTexts.find(t=>t.area===area);result=existing?await db.from('site_texts').update({text,enabled:$('siteTextEnabled').checked}).eq('id',existing.id).select().single():await db.from('site_texts').insert({area,text,enabled:$('siteTextEnabled').checked,sort_order:0}).select().single();}else{result=await db.from('site_texts').insert({area,text,enabled:$('siteTextEnabled').checked,sort_order:siteTexts.filter(t=>t.area===area).length}).select().single();}const {data,error}=result;if(error)return msg('siteTextMessage','Không lưu được: '+error.message,'error');const idx=siteTexts.findIndex(t=>t.id===data.id);if(idx>=0)siteTexts[idx]=data;else siteTexts.push(data);editingSiteTextId=null;$('siteTextValue').value='';$('saveSiteText').textContent='Thêm chữ vào website';renderSiteTextList();renderGallery();renderCustomSiteTexts();msg('siteTextMessage','Đã lưu chữ trên website.','success');}
 async function toggleSiteText(id){const t=siteTexts.find(x=>x.id===id);if(!t||!isAdmin())return;const {data,error}=await db.from('site_texts').update({enabled:!t.enabled}).eq('id',id).select().single();if(error)return toast('Không thể cập nhật: '+error.message);Object.assign(t,data);renderSiteTextList();renderGallery();renderCustomSiteTexts();}
 async function deleteSiteText(id){if(!isAdmin())return;const {error}=await db.from('site_texts').delete().eq('id',id);if(error)return toast('Không thể xóa: '+error.message);siteTexts=siteTexts.filter(t=>t.id!==id);if(editingSiteTextId===id){editingSiteTextId=null;$('siteTextValue').value='';$('saveSiteText').textContent='Thêm chữ vào website';}renderSiteTextList();renderGallery();renderCustomSiteTexts();}
+function normalizeQuickOrder(ordered){
+ const ids=ordered.map(m=>m.id).slice(0,8);
+ const saved=ordered.find(m=>Array.isArray(m.quick_order)&&m.quick_order.length)?.quick_order;
+ if(!Array.isArray(saved)||!saved.length)return [...ids,...Array(Math.max(0,8-ids.length)).fill(null)].slice(0,8);
+ // New format stores eight positions (including null gaps); old compact arrays are upgraded safely.
+ if(saved.length>=8){
+   const used=new Set();
+   const result=saved.slice(0,8).map(id=>{if(!id||!ids.includes(id)||used.has(id))return null;used.add(id);return id;});
+   const remaining=ids.filter(id=>!used.has(id));
+   for(let i=0;i<8&&remaining.length;i++)if(result[i]===null)result[i]=remaining.shift();
+   return result;
+ }
+ const compact=[...saved.filter(id=>ids.includes(id)),...ids.filter(id=>!saved.includes(id))];
+ return [...compact.slice(0,8),...Array(Math.max(0,8-compact.length)).fill(null)].slice(0,8);
+}
+async function saveQuickOrder(order){
+ if(!isAdmin()||!db)return false;
+ const normalized=Array.from({length:8},(_,i)=>order[i]||null);
+ // Keep the same arrangement no matter which map is currently selected.
+ const results=await Promise.all(maps.map(m=>db.from('maps').update({quick_order:normalized}).eq('id',m.id)));
+ const failed=results.find(r=>r.error);
+ if(failed){toast('Không lưu được vị trí ô. Hãy chạy quick-order-migration.sql và kiểm tra quyền quản trị Supabase. '+failed.error.message);return false;}
+ maps.forEach(m=>{m.quick_order=normalized.slice();});
+ renderGallery();toast('Đã lưu vị trí các ô biểu tượng.');return true;
+}
 function renderGallery(){
  const q=($('gallerySearch')?.value||'').toLowerCase(),d=$('galleryDifficulty')?.value||'all';
  const ordered=maps.slice().sort((a,b)=>(Number(a.sort_order)||0)-(Number(b.sort_order)||0));
@@ -85,13 +110,50 @@ function renderGallery(){
  const host=$('mapGallery'),quick=$('quickMapGrid');if(!host)return;
  if(!filtered.length){host.innerHTML='<div class="empty">Chưa có bản đồ phù hợp. Hãy kết nối Supabase hoặc thêm bản đồ trong quản trị.</div>';if(quick)quick.innerHTML='<div class="empty">Chưa có sơ đồ</div>';return;}
  const defaultId=(ordered[0]||{}).id;
- if(quick){const active=byId(currentMapId)||ordered[0],slots=Array.isArray(active?.quick_slots)?active.quick_slots:[],stored=Array.isArray(active?.quick_order)?active.quick_order:[],defaultOrder=ordered.map(m=>m.id),order=[...stored.filter(id=>defaultOrder.includes(id)),...defaultOrder.filter(id=>!stored.includes(id))].slice(0,8),layout=Array.from({length:9},(_,i)=>i===4?null:order[i<4?i:i-1]||null);quick.innerHTML=layout.map((id,i)=>{if(i===4){const door=slots[i]?.url;return `<div class="quick-map quick-door-slot quick-default" aria-label="Cửa chính, không thể chọn"><span class="quick-thumb">${door?`<img src="${esc(door)}" alt="">`:'🚪'}</span></div>`;}const m=byId(id),custom=slots[i]?.url;if(!m)return `<div class="quick-map quick-empty-slot" aria-hidden="true"><span class="quick-thumb">⌖</span></div>`;return `<button class="quick-map ${m.id===currentMapId?'quick-current':''}" data-quick-map="${m.id}" title="${esc(m.name)}" ${session?'draggable="true"':''}><span class="quick-thumb">${custom?`<img src="${esc(custom)}" alt="">`:(m.thumbnail_url||m.image_url)?`<img src="${esc(m.thumbnail_url||m.image_url)}" alt="">`:'⌖'}</span></button>`;}).join('');const hint=$('quickLayoutHint');if(hint)hint.hidden=!session;quick.querySelectorAll('[data-quick-map]').forEach(b=>{b.addEventListener('click',()=>{if(!quick.dataset.dragged)openMapPage(b.dataset.quickMap);});if(session){b.addEventListener('dragstart',e=>{quick.dataset.dragged='';e.dataTransfer.setData('text/plain',b.dataset.quickMap);b.classList.add('dragging');});b.addEventListener('dragend',()=>{b.classList.remove('dragging');setTimeout(()=>delete quick.dataset.dragged,0);});b.addEventListener('dragover',e=>e.preventDefault());b.addEventListener('drop',async e=>{e.preventDefault();const from=e.dataTransfer.getData('text/plain'),to=b.dataset.quickMap;if(!from||from===to)return;quick.dataset.dragged='1';const orderNow=Array.isArray(active.quick_order)&&active.quick_order.length?active.quick_order.slice():ordered.map(x=>x.id);const fi=orderNow.indexOf(from),ti=orderNow.indexOf(to);if(fi<0||ti<0)return;orderNow.splice(fi,1);orderNow.splice(ti,0,from);const {data,error}=await db.from('maps').update({quick_order:orderNow}).eq('id',active.id).select().single();if(error){toast('Không lưu được vị trí ô: '+error.message);return;}Object.assign(active,data);renderGallery();toast('Đã lưu vị trí các ô biểu tượng.');});}}); }
+ if(quick){
+   const active=byId(currentMapId)||ordered[0],slots=Array.isArray(active?.quick_slots)?active.quick_slots:[],order=normalizeQuickOrder(ordered),layout=Array.from({length:9},(_,i)=>i===4?null:order[i<4?i:i-1]||null);
+   quick.innerHTML=layout.map((id,i)=>{
+     if(i===4){const door=slots[i]?.url;return `<div class="quick-map quick-door-slot quick-default" aria-label="Cửa chính, không thể chọn"><span class="quick-thumb">${door?`<img src="${esc(door)}" alt="">`:'🚪'}</span></div>`;}
+     const slotIndex=i<4?i:i-1,m=byId(id),custom=slots[i]?.url;
+     if(!m)return `<div class="quick-map quick-empty-slot ${session?'quick-drop-target':''}" data-slot-index="${slotIndex}" aria-label="Ô trống"><span class="quick-thumb">⌖</span></div>`;
+     return `<button type="button" class="quick-map ${m.id===currentMapId?'quick-current':''} ${session?'quick-draggable':''}" data-quick-map="${m.id}" data-slot-index="${slotIndex}" title="${esc(m.name)}"><span class="quick-thumb">${custom?`<img src="${esc(custom)}" alt="">`:(m.thumbnail_url||m.image_url)?`<img src="${esc(m.thumbnail_url||m.image_url)}" alt="">`:'⌖'}</span></button>`;
+   }).join('');
+   const hint=$('quickLayoutHint');if(hint)hint.hidden=!session;
+   let pointerDrag=null,suppressClick=false;
+   if(session){
+     quick.querySelectorAll('[data-slot-index]').forEach(tile=>{
+       tile.addEventListener('pointerdown',e=>{
+         if(e.button!==0||e.target.closest('.quick-door-slot'))return;
+         pointerDrag={from:Number(tile.dataset.slotIndex),startX:e.clientX,startY:e.clientY,moved:false,pointerId:e.pointerId};
+         tile.classList.add('dragging');
+         try{tile.setPointerCapture(e.pointerId);}catch{}
+         e.preventDefault();
+       });
+       tile.addEventListener('pointermove',e=>{
+         if(!pointerDrag||pointerDrag.pointerId!==e.pointerId)return;
+         if(Math.abs(e.clientX-pointerDrag.startX)+Math.abs(e.clientY-pointerDrag.startY)>6)pointerDrag.moved=true;
+       });
+       const finish=async e=>{
+         if(!pointerDrag||pointerDrag.pointerId!==e.pointerId)return;
+         const drag=pointerDrag;pointerDrag=null;
+         quick.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));
+         if(!drag.moved)return;
+         suppressClick=true;
+         const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('#quickMapGrid [data-slot-index]');
+         if(target){const to=Number(target.dataset.slotIndex);if(Number.isInteger(to)&&to>=0&&to<8&&to!==drag.from){const next=normalizeQuickOrder(ordered);[next[drag.from],next[to]]=[next[to],next[drag.from]];await saveQuickOrder(next);}}
+         setTimeout(()=>{suppressClick=false;},250);
+       };
+       tile.addEventListener('pointerup',finish);tile.addEventListener('pointercancel',()=>{pointerDrag=null;tile.classList.remove('dragging');});
+       tile.addEventListener('click',e=>{if(suppressClick){e.preventDefault();e.stopPropagation();return;}if(tile.dataset.quickMap)openMapPage(tile.dataset.quickMap);});
+     });
+   }else quick.querySelectorAll('[data-quick-map]').forEach(tile=>tile.addEventListener('click',()=>openMapPage(tile.dataset.quickMap)));
+ }
  host.innerHTML=filtered.map((m,i)=>`<article class="gallery-card ${m.id===defaultId?'default-map':''}" data-gallery-card="${m.id}"><div class="gallery-thumb">${(m.thumbnail_url||m.image_url)?`<img src="${esc(m.thumbnail_url||m.image_url)}" alt="Ảnh ${esc(m.name)}">`:'<span class="thumb-placeholder">⌖</span>'}<span class="gallery-corner">${ordered.findIndex(x=>x.id===m.id)+1}</span><button class="corner-select" data-open-map="${m.id}" aria-label="Mở ${esc(m.name)}">↗</button></div><div class="gallery-card-copy"><strong>${esc(m.name)}</strong><small>${esc(m.notes||((m.area||'Lost Sanctum')+' · '+(m.difficulty||'Độ khó chưa đặt')))}</small><div class="card-bottom"><span class="map-tag ${/nightmare|chaos/i.test(m.difficulty||'')?'rare-tag':''}">${/nightmare|chaos/i.test(m.difficulty||'')?esc(siteTextFor('rare_badge','HIẾM HƠN')):esc(m.difficulty||'BẢN ĐỒ')}</span><span class="card-open">Mở bản đồ ⟶</span></div>${m.id===defaultId?`<span class="default-label">${esc(siteTextFor('default_badge','MẶC ĐỊNH'))}</span>`:''}${siteTexts.filter(t=>t.area==='gallery_card'&&t.enabled!==false).map(t=>`<span class="custom-card-label">${esc(t.text)}</span>`).join('')}</div></article>`).join('');
  renderCustomSiteTexts();
  host.querySelectorAll('[data-open-map]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openMapPage(b.dataset.openMap);}));
  host.querySelectorAll('[data-gallery-card]').forEach(card=>card.addEventListener('click',()=>openMapPage(card.dataset.galleryCard)));
- quick?.querySelectorAll('[data-quick-map]').forEach(b=>b.addEventListener('click',()=>openMapPage(b.dataset.quickMap)));
 }
+
 async function openMapPage(id){await selectMap(id);$('mapGalleryPage').hidden=true;$('mapDetailPage').hidden=false;renderCustomSiteTexts();window.scrollTo({top:0,behavior:'smooth'});}
 async function moveMap(id,delta){if(!isAdmin()||!db)return;const ordered=maps.slice().sort((a,b)=>(Number(a.sort_order)||0)-(Number(b.sort_order)||0));const i=ordered.findIndex(m=>m.id===id),j=i+delta;if(i<0||j<0||j>=ordered.length)return;const a=ordered[i],b=ordered[j];const {error:e1}=await db.from('maps').update({sort_order:Number(b.sort_order??j)}).eq('id',a.id);const {error:e2}=await db.from('maps').update({sort_order:Number(a.sort_order??i)}).eq('id',b.id);if(e1||e2){toast('Không thể đổi thứ tự. Hãy chạy phần cập nhật SQL trong README.');return;}await loadMaps();toast('Đã cập nhật vị trí bản đồ.');}
 async function selectMap(id){const m=byId(id);if(!m)return;if(currentMapId&&currentMapId!==id)clearProgress(currentMapId);currentMapId=id;placingPoint=false;renderMapList();renderGallery();$('currentTitle').textContent=m.name;$('currentMeta').textContent=`${m.area||'Lost Sanctum'} · ${m.difficulty||'Độ khó chưa đặt'}${m.notes?' · '+m.notes:''}`;$('mapPlaceholder').hidden=true;$('mapImage').hidden=false;$('mapImage').src=m.image_url;$('mapImage').alt=m.name;$('mapImage').onerror=()=>{$('mapImage').hidden=true;$('mapPlaceholder').hidden=false;$('mapPlaceholder').querySelector('h3').textContent='Không tải được ảnh bản đồ';};$('mapImage').onload=()=>{if($('mapImage').naturalWidth){$('mapCanvas').style.minHeight='0';$('mapCanvas').style.height='auto';$('mapImage').hidden=false;$('mapPlaceholder').hidden=true;}};if(db)await loadPoints(id);else renderMarkers();if(session){$('pointMap').value=id;renderPointList();}}
