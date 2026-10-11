@@ -55,3 +55,19 @@
 .quick-map.dragging{opacity:.45;transform:scale(.96);border-color:#ffb23d;box-shadow:0 0 0 2px #ff9d3266}
 .quick-map.quick-drop-target{border-style:dashed;border-color:#4abfff66;cursor:crosshair}
 .quick-map.quick-drop-target:has(.quick-thumb){color:#8b88a2}
+
+/* Difficulty selector pills inspired by the supplied reference */
+.difficulty-source{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;clip-path:inset(50%)!important;border:0!important;padding:0!important;margin:-1px!important}
+.difficulty-pills{display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-width:0}
+.difficulty-pill{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:6px 13px;border:1px solid #39334f;border-radius:999px;background:linear-gradient(145deg,#211d35,#12111f);color:#f6f1ff;font-size:12px;font-weight:850;white-space:nowrap;cursor:pointer;transition:background .18s,border-color .18s,transform .18s,box-shadow .18s}
+.difficulty-pill:hover{border-color:#8272ad;transform:translateY(-1px)}
+.difficulty-pill.active{color:#241a05;background:linear-gradient(180deg,#ffe38a,#f4b92f);border-color:#ffdb70;box-shadow:0 0 0 2px #ffcf5430,0 5px 18px #f2b82e20}
+.difficulty-icon{display:grid;place-items:center;flex:none;width:31px;height:31px;border-radius:50%;font-size:19px;line-height:1;background:linear-gradient(145deg,#38304e,#171426);border:1px solid #4b4169;color:#fff;box-shadow:inset 0 1px 3px #ffffff15}
+.difficulty-pill.active .difficulty-icon{background:linear-gradient(145deg,#443265,#211b39);border-color:#5a477c;color:#e4cfff}
+.gallery-filters{display:flex;flex-direction:column;align-items:stretch;gap:9px}
+.gallery-filters #gallerySearch{width:100%}
+.gallery-filters .difficulty-pills{justify-content:flex-start}
+.detail-difficulty-pills{margin:0 0 14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.detail-difficulty-pills .difficulty-pill{min-height:40px;padding:5px 8px;gap:6px;font-size:11px}
+.detail-difficulty-pills .difficulty-icon{width:25px;height:25px;font-size:16px}
+@media(max-width:600px){.difficulty-pills{gap:5px}.difficulty-pill{min-height:41px;padding:5px 9px;gap:6px;font-size:11px}.difficulty-icon{width:27px;height:27px;font-size:17px}.gallery-filters .difficulty-pills{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.gallery-filters .difficulty-pill{width:100%}}
