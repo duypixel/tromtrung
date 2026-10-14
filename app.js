@@ -10,9 +10,10 @@ const visibleTypes = {egg:true,chest:true,boss:true,key:true,door:true,other:tru
 // Tiến trình cá nhân được lưu trên trình duyệt, tách biệt hoàn toàn với dữ liệu điểm trong Supabase.
 const PROGRESS_KEY = 'duyPixelAniimoCompleted_v1';
 const DEFAULT_ICONS = {...ICONS};
-function mapIcon(type){const m=byId(currentMapId);return (m&&m.icon_config&&m.icon_config[type])||DEFAULT_ICONS[type]||'📍';}
+function normalizedIconConfig(value){if(!value)return {};if(typeof value==='string'){try{value=JSON.parse(value);}catch{return {};}}return value&&typeof value==='object'&&!Array.isArray(value)?value:{};}
+function mapIcon(type){const m=byId(currentMapId),config=normalizedIconConfig(m?.icon_config),value=config[type];return typeof value==='string'&&value.trim()?value.trim():(DEFAULT_ICONS[type]||'📍');}
 function clearProgress(mapId){if(!mapId)return;const saved=readProgress();if(saved[mapId]){delete saved[mapId];localStorage.setItem(PROGRESS_KEY,JSON.stringify(saved));}}
-function renderIconPreviews(){const m=byId($('assetMap')?.value);document.querySelectorAll('[id^="iconPreview_"]').forEach(el=>{const type=el.id.replace('iconPreview_',''),val=m?.icon_config?.[type];el.innerHTML=val&&/^https?:\/\//i.test(val)?'<img src="'+esc(val)+'" alt="">':esc(DEFAULT_ICONS[type]||'📍');});}
+function renderIconPreviews(){const m=byId($('assetMap')?.value),config=normalizedIconConfig(m?.icon_config);document.querySelectorAll('[id^="iconPreview_"]').forEach(el=>{const type=el.id.replace('iconPreview_',''),val=config[type];el.innerHTML=val&&/^https?:\/\//i.test(val)?'<img src="'+esc(val)+'" alt="">':esc(DEFAULT_ICONS[type]||'📍');});}
 async function uploadAsset(file,path){const up=await db.storage.from(STORAGE_BUCKET).upload(path,file,{cacheControl:'3600',upsert:true,contentType:file.type});if(up.error)throw up.error;return db.storage.from(STORAGE_BUCKET).getPublicUrl(path).data.publicUrl;}
 
 function readProgress(){try{return JSON.parse(localStorage.getItem(PROGRESS_KEY)||'{}')}catch{return {}}}
@@ -113,7 +114,7 @@ function renderGallery(){
  if(!filtered.length){host.innerHTML='<div class="empty">Chưa có bản đồ phù hợp. Hãy kết nối Supabase hoặc thêm bản đồ trong quản trị.</div>';if(quick)quick.innerHTML='<div class="empty">Chưa có sơ đồ</div>';return;}
  const defaultId=(ordered[0]||{}).id;
  if(quick){
-   const active=byId(currentMapId)||ordered[0],slots=Array.isArray(active?.quick_slots)?active.quick_slots:[],order=normalizeQuickOrder(ordered),layout=Array.from({length:9},(_,i)=>i===4?null:order[i<4?i:i-1]||null);
+   const active=byId(currentMapId)||difficultyMaps[0]||ordered[0],slots=Array.isArray(active?.quick_slots)?active.quick_slots:[],order=normalizeQuickOrder(difficultyMaps),layout=Array.from({length:9},(_,i)=>i===4?null:order[i<4?i:i-1]||null);
    quick.innerHTML=layout.map((id,i)=>{
      if(i===4){const door=slots[i]?.url;return `<div class="quick-map quick-door-slot quick-default" aria-label="Cửa chính, không thể chọn"><span class="quick-thumb">${door?`<img src="${esc(door)}" alt="">`:'🚪'}</span></div>`;}
      const slotIndex=i<4?i:i-1,m=byId(id),custom=slots[i]?.url;
@@ -188,10 +189,10 @@ async function replaceMapThumbnail(){
 async function uploadMapIcon(type){
  if(!isAdmin()||!db)return;const id=$('assetMap').value,m=byId(id),file=$(`iconFile_${type}`).files[0];if(!m||!file)return msg('assetMessage','Chọn bản đồ và file icon trước.','error');
  if(!['image/png','image/jpeg','image/webp'].includes(file.type))return msg('assetMessage','Icon chỉ hỗ trợ PNG, JPG hoặc WEBP.','error');if(file.size>5*1024*1024)return msg('assetMessage','Icon phải nhỏ hơn 5 MB.','error');
- try{const ext=file.type==='image/jpeg'?'jpg':file.type.split('/')[1],path=`${session.user.id}/${id}-icon-${type}-${crypto.randomUUID()}.${ext}`;const url=await uploadAsset(file,path);const config={...(m.icon_config||{}),[type]:url};const {data,error}=await db.from('maps').update({icon_config:config}).eq('id',id).select().single();if(error)throw error;Object.assign(m,data);renderIconPreviews();if(currentMapId===id)renderMarkers();msg('assetMessage',`Đã cập nhật icon ${type}.`,'success');toast('Đã lưu icon mới.');}catch(e){msg('assetMessage','Không thể tải icon: '+e.message,'error');}
+ try{const ext=file.type==='image/jpeg'?'jpg':file.type.split('/')[1],path=`${session.user.id}/${id}-icon-${type}-${crypto.randomUUID()}.${ext}`;const url=await uploadAsset(file,path);const config={...normalizedIconConfig(m.icon_config),[type]:url};const {data,error}=await db.from('maps').update({icon_config:config}).eq('id',id).select().single();if(error)throw error;Object.assign(m,data);renderIconPreviews();if(currentMapId===id)renderMarkers();msg('assetMessage',`Đã cập nhật icon ${type}.`,'success');toast('Đã lưu icon mới.');}catch(e){msg('assetMessage','Không thể tải icon: '+e.message,'error');}
 }
 async function resetMapIcon(type){
- if(!isAdmin()||!db)return;const id=$('assetMap').value,m=byId(id);if(!m)return;const config={...(m.icon_config||{})};delete config[type];const {data,error}=await db.from('maps').update({icon_config:config}).eq('id',id).select().single();if(error)return msg('assetMessage','Không thể đặt lại icon: '+error.message,'error');Object.assign(m,data);renderIconPreviews();if(currentMapId===id)renderMarkers();msg('assetMessage',`Đã khôi phục icon ${type} mặc định.`,'success');
+ if(!isAdmin()||!db)return;const id=$('assetMap').value,m=byId(id);if(!m)return;const config={...normalizedIconConfig(m.icon_config)};delete config[type];const {data,error}=await db.from('maps').update({icon_config:config}).eq('id',id).select().single();if(error)return msg('assetMessage','Không thể đặt lại icon: '+error.message,'error');Object.assign(m,data);renderIconPreviews();if(currentMapId===id)renderMarkers();msg('assetMessage',`Đã khôi phục icon ${type} mặc định.`,'success');
 }
 window.addEventListener('pagehide',()=>clearProgress(currentMapId));
 function switchTab(id){activeTab=id;document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));document.querySelectorAll('.tab-panel').forEach(p=>p.hidden=p.id!==id);if(id==='siteTextTab')renderSiteTextList();}

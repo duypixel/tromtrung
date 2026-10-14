@@ -101,3 +101,38 @@
   width: 100%;
   height: 100%;
 }
+
+/* Mobile map library: keep the compact selector on the left so the map stays visible. */
+@media(max-width:720px){
+  .gallery-page{padding:10px 8px 28px}
+  .gallery-shell{grid-template-columns:minmax(76px,25%) minmax(0,1fr);gap:8px;align-items:start}
+  .gallery-guide{position:sticky;top:78px;padding:7px;border-radius:14px;max-height:calc(100dvh - 92px);overflow-y:auto}
+  .icon-only-guide .quick-map-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+  .icon-only-guide .quick-map{min-height:58px;padding:4px;border-radius:10px}
+  .icon-only-guide .quick-thumb{width:28px;height:28px}
+  .icon-only-guide .quick-layout-hint{font-size:9px}
+  .gallery-main{min-width:0}
+  .gallery-intro{display:block;margin:0 0 10px}
+  .gallery-intro h1{font-size:20px;line-height:1.15}
+  .gallery-intro>p{font-size:10px;line-height:1.4}
+  .gallery-filters{display:block;margin-top:10px}
+  .gallery-filters>input{margin-bottom:6px}
+  .gallery-filters .difficulty-pills{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+  .gallery-filters .difficulty-pill{min-height:34px;padding:4px;font-size:9px;gap:4px}
+  .gallery-filters .difficulty-icon{width:20px;height:20px;font-size:13px}
+  .map-gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .gallery-thumb{height:88px}
+  .gallery-card{border-radius:12px}
+  .gallery-card-copy{padding:7px;gap:4px}
+  .gallery-card-copy strong{font-size:10px}
+  .gallery-card-copy small{font-size:9px;min-height:0}
+  .map-tag{font-size:7px;padding:3px 4px}
+  .card-open{font-size:7px}
+}
+@media(max-width:390px){
+  .gallery-shell{grid-template-columns:70px minmax(0,1fr);gap:6px}
+  .icon-only-guide .quick-map-grid{grid-template-columns:1fr}
+  .map-gallery{grid-template-columns:1fr}
+  .gallery-thumb{height:115px}
+  .gallery-intro h1{font-size:18px}
+}
