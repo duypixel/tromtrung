@@ -187,6 +187,22 @@ function showGallery(){ $('mapGalleryPage').hidden=false;$('mapDetailPage').hidd
 
   return labels[area] || String(area || 'Khu vực khác');
 }
+function areaLabel(area) {
+  const labels = {
+    rare_badge: 'Nhãn HIẾM HƠN',
+    default_badge: 'Nhãn MẶC ĐỊNH',
+    gallery_top: 'Phía trên danh sách bản đồ',
+    gallery_bottom: 'Phía dưới danh sách bản đồ',
+    sidebar_bottom: 'Cuối bảng hướng dẫn',
+    gallery_card: 'Trên thẻ bản đồ',
+    map_detail: 'Trang chi tiết bản đồ',
+    footer: 'Cuối trang website',
+    site_theme_config: 'Cấu hình giao diện',
+    site_background_config: 'Cấu hình hình nền'
+  };
+
+  return labels[area] || String(area || 'Khu vực khác');
+}
 function siteTextFor(area,fallback=''){const rows=siteTexts.filter(t=>t.area===area&&t.enabled!==false).sort((a,b)=>(Number(a.sort_order)||0)-(Number(b.sort_order)||0));return rows.length?rows[0].text:fallback;}
 function renderCustomSiteTexts(){document.querySelectorAll('[data-site-text-area]').forEach(host=>{const area=host.dataset.siteTextArea;const rows=siteTexts.filter(t=>t.area===area&&t.enabled!==false).sort((a,b)=>(Number(a.sort_order)||0)-(Number(b.sort_order)||0));host.innerHTML=rows.map(t=>`<div class="custom-site-text">${esc(t.text).replace(/\n/g,'<br>')}</div>`).join('');});}
 async function loadSiteTexts(){if(!db)return;const {data,error}=await db.from('site_texts').select('*').order('sort_order',{ascending:true}).order('created_at',{ascending:true});if(error){console.warn('Site text settings are not installed yet:',error.message);siteTexts=[];applyAppearanceSettings();return;}siteTexts=data||[];renderCustomSiteTexts();renderSiteTextList();applyAppearanceSettings();renderAppearanceAdmin();}
