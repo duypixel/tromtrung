@@ -213,12 +213,45 @@ async function replaceMapThumbnail(){
  $('replaceMapThumbnail').disabled=true;try{const ext=file.type==='image/jpeg'?'jpg':file.type.split('/')[1];const path=`${session.user.id}/${id}-thumbnail-${crypto.randomUUID()}.${ext}`;const url=await uploadAsset(file,path);const {data,error}=await db.from('maps').update({thumbnail_url:url}).eq('id',id).select().single();if(error)throw error;Object.assign(m,data);$('replacementThumbFile').value='';renderMapList();msg('assetMessage','Đã cập nhật ảnh thu nhỏ.','success');toast('Đã thay ảnh thu nhỏ của thẻ bản đồ.');}catch(e){msg('assetMessage','Không thể thay ảnh thu nhỏ: '+e.message,'error');}finally{$('replaceMapThumbnail').disabled=false;}
 }
 async function uploadMapIcon(type){
- if(!isAdmin()||!db)return;const id=$('assetMap').value,m=byId(id),file=$(`iconFile_${type}`).files[0];if(!m||!file)return msg('assetMessage','Chọn bản đồ và file icon trước.','error');
- if(!['image/png','image/jpeg','image/webp'].includes(file.type))return msg('assetMessage','Icon chỉ hỗ trợ PNG, JPG hoặc WEBP.','error');if(file.size>5*1024*1024)return msg('assetMessage','Icon phải nhỏ hơn 5 MB.','error');
- try{const ext=file.type==='image/jpeg'?'jpg':file.type.split('/')[1],path=`${session.user.id}/${id}-icon-${type}-${crypto.randomUUID()}.${ext}`;const url=await uploadAsset(file,path);const config={...normalizedIconConfig(m.icon_config),[type]:url};const {data,error}=await db.from('maps').update({icon_config:config}).eq('id',id).select().single();if(error)throw error;Object.assign(m,data);renderIconPreviews();if(currentMapId===id)renderMarkers();msg('assetMessage',`Đã cập nhật icon ${type}.`,'success');toast('Đã lưu icon mới.');}catch(e){msg('assetMessage','Không thể tải icon: '+e.message,'error');}
+ if(!isAdmin()||!db)return;
+ const id=$('assetMap').value,m=byId(id),file=$(`iconFile_${type}`).files[0];
+ if(!m||!file)return msg('assetMessage','Chọn bản đồ và file icon trước.','error');
+ if(!['image/png','image/jpeg','image/webp'].includes(file.type))return msg('assetMessage','Icon chỉ hỗ trợ PNG, JPG hoặc WEBP.','error');
+ if(file.size>5*1024*1024)return msg('assetMessage','Icon phải nhỏ hơn 5 MB.','error');
+ const buttons=[...document.querySelectorAll('[data-upload-icon]')];buttons.forEach(b=>b.disabled=true);
+ try{
+  const ext=file.type==='image/jpeg'?'jpg':file.type.split('/')[1];
+  const path=`${session.user.id}/shared-icon-${type}-${crypto.randomUUID()}.${ext}`;
+  const url=await uploadAsset(file,path);
+  // Icon types are shared by all maps. Save the same URL to every map so every map's markers use it.
+  for(const map of maps){
+   const config={...normalizedIconConfig(map.icon_config),[type]:url};
+   const {data,error}=await db.from('maps').update({icon_config:config}).eq('id',map.id).select().single();
+   if(error)throw new Error(`Không lưu được icon cho bản đồ "${map.name}": ${error.message}`);
+   Object.assign(map,data);
+  }
+  renderIconPreviews();renderMarkers();renderGallery();
+  msg('assetMessage',`Đã cập nhật icon ${type} cho tất cả bản đồ.`,'success');
+  toast('Đã cập nhật icon trên tất cả bản đồ.');
+ }catch(e){msg('assetMessage','Không thể cập nhật icon: '+e.message,'error');}
+ finally{buttons.forEach(b=>b.disabled=false);}
 }
 async function resetMapIcon(type){
- if(!isAdmin()||!db)return;const id=$('assetMap').value,m=byId(id);if(!m)return;const config={...normalizedIconConfig(m.icon_config)};delete config[type];const {data,error}=await db.from('maps').update({icon_config:config}).eq('id',id).select().single();if(error)return msg('assetMessage','Không thể đặt lại icon: '+error.message,'error');Object.assign(m,data);renderIconPreviews();if(currentMapId===id)renderMarkers();msg('assetMessage',`Đã khôi phục icon ${type} mặc định.`,'success');
+ if(!isAdmin()||!db)return;
+ const buttons=[...document.querySelectorAll('[data-reset-icon]')];buttons.forEach(b=>b.disabled=true);
+ try{
+  // Reset this icon type globally, keeping each map's other icon settings intact.
+  for(const map of maps){
+   const config={...normalizedIconConfig(map.icon_config)};delete config[type];
+   const {data,error}=await db.from('maps').update({icon_config:config}).eq('id',map.id).select().single();
+   if(error)throw new Error(`Không đặt lại được icon cho bản đồ "${map.name}": ${error.message}`);
+   Object.assign(map,data);
+  }
+  renderIconPreviews();renderMarkers();renderGallery();
+  msg('assetMessage',`Đã khôi phục icon ${type} mặc định trên tất cả bản đồ.`,'success');
+  toast('Đã đặt lại icon trên tất cả bản đồ.');
+ }catch(e){msg('assetMessage','Không thể đặt lại icon: '+e.message,'error');}
+ finally{buttons.forEach(b=>b.disabled=false);}
 }
 window.addEventListener('pagehide',()=>clearProgress(currentMapId));
 function switchTab(id){activeTab=id;document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));document.querySelectorAll('.tab-panel').forEach(p=>p.hidden=p.id!==id);if(id==='siteTextTab')renderSiteTextList();}
