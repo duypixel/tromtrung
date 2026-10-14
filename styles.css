@@ -232,3 +232,18 @@
 @media(max-width:1050px){.detail-layout{grid-template-columns:150px minmax(0,1fr) 250px}.detail-library{padding:16px 10px}}
 @media(max-width:850px){.detail-layout{grid-template-columns:1fr;gap:0}.detail-quick-panel{position:static;margin:10px 12px;padding:8px}.detail-quick-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.detail-quick-tile{border-radius:8px}.detail-quick-hint{display:none}.detail-library{position:static;max-height:none;overflow:visible;border-left:0;border-top:1px solid var(--line);padding:18px}.detail-library .map-list{grid-template-columns:repeat(2,minmax(0,1fr))}.map-legend-panel{gap:7px 10px}}
 @media(max-width:480px){.detail-quick-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.detail-quick-tile{min-height:46px}.detail-library .map-list{grid-template-columns:1fr}.map-legend-panel label{font-size:9px}}
+
+
+/* Library cards: show full thumbnail and title only, without overlay or crop. */
+.gallery-thumb{height:clamp(145px,13vw,205px);flex:none;overflow:hidden;}
+.gallery-thumb img{object-fit:contain!important;object-position:center!important;width:100%;height:100%;padding:8px;background:#171426;}
+.gallery-title-overlay{display:none!important;}
+.gallery-card-copy{display:flex;flex-direction:column;gap:0;padding:10px 11px 12px;min-height:0;}
+.gallery-card-copy>strong{display:block!important;font-size:13px;line-height:1.35;overflow-wrap:anywhere;}
+.gallery-card-copy>small,.gallery-card-copy .card-bottom,.gallery-card-copy .default-label,.gallery-card-copy .custom-card-label{display:none!important;}
+.map-row .map-thumb{height:auto;aspect-ratio:1.55/1;min-height:0;}
+.map-row .map-thumb img{object-fit:contain!important;object-position:center!important;width:100%;height:100%;padding:5px;}
+.map-row .map-card-copy small{display:none!important;}
+.map-row .map-card-copy{padding:9px 10px;}
+@media(max-width:720px){.gallery-thumb{height:clamp(105px,22vw,155px)}.gallery-card-copy{padding:8px}.gallery-card-copy>strong{font-size:11px}}
+@media(max-width:390px){.gallery-thumb{height:clamp(130px,35vw,180px)}}
