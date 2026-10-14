@@ -6,6 +6,7 @@ const configured = SUPABASE_URL.startsWith('https://') && !SUPABASE_URL.includes
 const $ = (id) => document.getElementById(id);
 const ICONS = {egg:'🥚',chest:'🎁',boss:'👹',key:'🔑',door:'🚪',other:'📍'};
 let db = null, session = null, maps = [], points = [], siteTexts = [], editingSiteTextId = null, currentMapId = null, activeTab = 'mapsTab', placingPoint = false, zoom = 1, toastTimer;
+let sharedIconsSynced = false, sharedIconsSyncPromise = null;
 const visibleTypes = {egg:true,chest:true,boss:true,key:true,door:true,other:true};
 // Tiến trình cá nhân được lưu trên trình duyệt, tách biệt hoàn toàn với dữ liệu điểm trong Supabase.
 const PROGRESS_KEY = 'duyPixelAniimoCompleted_v1';
@@ -24,15 +25,20 @@ function getSharedIconConfig(){
 }
 function mapIcon(type){const local=normalizedIconConfig(byId(currentMapId)?.icon_config),shared=getSharedIconConfig(),value=shared[type]||local[type];return typeof value==='string'&&value.trim()?value.trim():(DEFAULT_ICONS[type]||'📍');}
 async function syncIconsAcrossMaps(){
- if(!isAdmin()||!db||!maps.length)return;
- const shared=getSharedIconConfig();if(!Object.keys(shared).length)return;
- for(const map of maps){
-  const current=normalizedIconConfig(map.icon_config),next={...current,...shared};
-  if(Object.keys(shared).every(type=>current[type]===shared[type]))continue;
-  const {data,error}=await db.from('maps').update({icon_config:next}).eq('id',map.id).select().single();
-  if(error)throw new Error('Không đồng bộ được icon cho bản đồ "'+(map.name||map.id)+'": '+error.message);
-  Object.assign(map,data);
- }
+ if(!isAdmin()||!db||!maps.length||sharedIconsSynced)return;
+ if(sharedIconsSyncPromise)return sharedIconsSyncPromise;
+ sharedIconsSyncPromise=(async()=>{
+  const shared=getSharedIconConfig();if(!Object.keys(shared).length){sharedIconsSynced=true;return;}
+  for(const map of maps){
+   const current=normalizedIconConfig(map.icon_config),next={...current,...shared};
+   if(Object.keys(shared).every(type=>current[type]===shared[type]))continue;
+   const {data,error}=await db.from('maps').update({icon_config:next}).eq('id',map.id).select().single();
+   if(error)throw new Error('Không đồng bộ được icon cho bản đồ "'+(map.name||map.id)+'": '+error.message);
+   Object.assign(map,data);
+  }
+  sharedIconsSynced=true;
+ })();
+ try{return await sharedIconsSyncPromise;}finally{sharedIconsSyncPromise=null;}
 }
 function clearProgress(mapId){if(!mapId)return;const saved=readProgress();if(saved[mapId]){delete saved[mapId];localStorage.setItem(PROGRESS_KEY,JSON.stringify(saved));}}
 function renderIconPreviews(){const m=byId($('assetMap')?.value),local=normalizedIconConfig(m?.icon_config),shared=getSharedIconConfig();document.querySelectorAll('[id^="iconPreview_"]').forEach(el=>{const type=el.id.replace('iconPreview_',''),val=shared[type]||local[type];el.innerHTML=val&&/^https?:\/\//i.test(val)?'<img src="'+esc(val)+'" alt="">':esc(DEFAULT_ICONS[type]||'📍');});}
