@@ -158,15 +158,15 @@ function renderDetailQuickMaps(){
   if(!m)return '<div class="detail-quick-tile" aria-label="Ô trống"><span class="quick-tile-empty">⌖</span></div>';
   return `<button type="button" class="detail-quick-tile ${m.id===currentMapId?'active':''}" data-detail-quick-map="${m.id}" title="${esc(m.name)}" aria-label="Mở bản đồ ${esc(m.name)}">${image?`<img src="${esc(image)}" alt="">`:'<span class="quick-tile-empty">⌖</span>'}<span class="quick-tile-number">${filtered.findIndex(x=>x.id===m.id)+1}</span></button>`;
  }).join('');
- host.querySelectorAll('[data-detail-quick-map]').forEach(button=>button.addEventListener('click',()=>selectMap(button.dataset.detailQuickMap)));
+ host.querySelectorAll('[data-detail-quick-map]').forEach(button=>button.addEventListener('click',e=>{if(button.dataset.suppressQuickClick==='1'){e.preventDefault();e.stopImmediatePropagation();delete button.dataset.suppressQuickClick;return;}selectMap(button.dataset.detailQuickMap);}));
  const hint=document.querySelector('.detail-quick-hint');
  if(hint){hint.textContent=session?'Quản trị: kéo các ô để đổi vị trí. Ô trung tâm là cửa chính và luôn cố định.':'Chọn một ô để chuyển bản đồ.';hint.classList.toggle('admin-drag-hint',!!session);}
  if(session){
   let drag=null,suppressClick=false;
   host.querySelectorAll('[data-detail-quick-map]').forEach(tile=>{
-   tile.addEventListener('pointerdown',e=>{if(e.button!==0)return;drag={from:filtered.findIndex(m=>m.id===tile.dataset.detailQuickMap),x:e.clientX,y:e.clientY,pointerId:e.pointerId,moved:false};tile.classList.add('dragging');try{tile.setPointerCapture(e.pointerId);}catch{}e.preventDefault();});
+   tile.addEventListener('pointerdown',e=>{if(e.button!==0)return;drag={from:filtered.findIndex(m=>m.id===tile.dataset.detailQuickMap),x:e.clientX,y:e.clientY,pointerId:e.pointerId,moved:false,tile};tile.classList.add('dragging');try{tile.setPointerCapture(e.pointerId);}catch{}e.preventDefault();});
    tile.addEventListener('pointermove',e=>{if(!drag||drag.pointerId!==e.pointerId)return;if(Math.abs(e.clientX-drag.x)+Math.abs(e.clientY-drag.y)>6)drag.moved=true;});
-   const finish=async e=>{if(!drag||drag.pointerId!==e.pointerId)return;const d=drag;drag=null;host.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));if(!d.moved)return;suppressClick=true;const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('#detailQuickMapGrid [data-detail-quick-map]');if(target){const to=filtered.findIndex(m=>m.id===target.dataset.detailQuickMap);if(to>=0&&d.from>=0&&to!==d.from){const next=normalizeQuickOrder(filtered);[next[d.from],next[to]]=[next[to],next[d.from]];await saveQuickOrder(next,filtered);}}setTimeout(()=>{suppressClick=false;},250);};
+   const finish=async e=>{if(!drag||drag.pointerId!==e.pointerId)return;const d=drag;drag=null;host.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));if(!d.moved)return;suppressClick=true;d.tile.dataset.suppressQuickClick='1';setTimeout(()=>{delete d.tile.dataset.suppressQuickClick;},350);const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('#detailQuickMapGrid [data-detail-quick-map]');if(target){const to=filtered.findIndex(m=>m.id===target.dataset.detailQuickMap);if(to>=0&&d.from>=0&&to!==d.from){const next=normalizeQuickOrder(filtered);[next[d.from],next[to]]=[next[to],next[d.from]];await saveQuickOrder(next,filtered);}}setTimeout(()=>{suppressClick=false;},250);};
    tile.addEventListener('pointerup',finish);tile.addEventListener('pointercancel',()=>{drag=null;tile.classList.remove('dragging');});tile.addEventListener('click',e=>{if(suppressClick){e.preventDefault();e.stopPropagation();}});
   });
  }
