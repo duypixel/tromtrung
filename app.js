@@ -142,7 +142,7 @@ async function loadMaps(){
  if(currentMapId)await selectMap(currentMapId);else clearMap();
 }
 function syncDifficultyPills(target){const select=$(target);if(!select)return;document.querySelectorAll(`.difficulty-pills[data-difficulty-target="${target}"] [data-difficulty]`).forEach(btn=>{const active=select.value===btn.dataset.difficulty;btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',String(active));});}
-function setDifficultyFilter(value){const normalized=value||'all';$('difficulty').value=normalized;$('galleryDifficulty').value=normalized;syncDifficultyPills('difficulty');syncDifficultyPills('galleryDifficulty');renderMapList();renderGallery();}
+function setDifficultyFilter(value){const normalized=value||'all';$('difficulty').value=normalized;$('galleryDifficulty').value=normalized;syncDifficultyPills('difficulty');syncDifficultyPills('galleryDifficulty');renderMapList();renderGallery();renderDetailQuickMaps();}
 function renderMapList(){const q=$('searchMap').value.toLowerCase(),d=$('difficulty').value;const filtered=maps.filter(m=>(m.name||'').toLowerCase().includes(q)&&(d==='all'||m.difficulty===d));$('mapCount').textContent=filtered.length;if(!filtered.length){$('mapList').innerHTML='<div class="empty">Chưa có bản đồ phù hợp. Quản trị viên có thể thêm bản đồ mới.</div>';renderDetailQuickMaps();return;}$('mapList').innerHTML=filtered.map(m=>`<button class="map-row ${m.id===currentMapId?'active':''}" data-map-id="${m.id}"><span class="map-thumb">${(m.thumbnail_url||m.image_url)?`<img src="${esc(m.thumbnail_url||m.image_url)}" alt="">`:'⌖'}</span><span class="map-card-copy"><strong>${esc(m.name)}</strong><small>${esc(m.area||'Lost Sanctum')} · ${esc(m.difficulty||'')}</small><small class="map-card-action">Mở bản đồ →</small></span></button>`).join('');document.querySelectorAll('[data-map-id]').forEach(b=>b.addEventListener('click',()=>selectMap(b.dataset.mapId)));renderDetailQuickMaps();}
 function renderDetailQuickMaps(){
  const host=$('detailQuickMapGrid');if(!host)return;
@@ -159,6 +159,17 @@ function renderDetailQuickMaps(){
   return `<button type="button" class="detail-quick-tile ${m.id===currentMapId?'active':''}" data-detail-quick-map="${m.id}" title="${esc(m.name)}" aria-label="Mở bản đồ ${esc(m.name)}">${image?`<img src="${esc(image)}" alt="">`:'<span class="quick-tile-empty">⌖</span>'}<span class="quick-tile-number">${filtered.findIndex(x=>x.id===m.id)+1}</span></button>`;
  }).join('');
  host.querySelectorAll('[data-detail-quick-map]').forEach(button=>button.addEventListener('click',()=>selectMap(button.dataset.detailQuickMap)));
+ const hint=document.querySelector('.detail-quick-hint');
+ if(hint)hint.textContent=session?'Quản trị: kéo các ô để đổi vị trí. Ô trung tâm là cửa chính và luôn cố định.':'Chọn một ô để chuyển bản đồ.';
+ if(session){
+  let drag=null,suppressClick=false;
+  host.querySelectorAll('[data-detail-quick-map]').forEach(tile=>{
+   tile.addEventListener('pointerdown',e=>{if(e.button!==0)return;drag={from:filtered.findIndex(m=>m.id===tile.dataset.detailQuickMap),x:e.clientX,y:e.clientY,pointerId:e.pointerId,moved:false};tile.classList.add('dragging');try{tile.setPointerCapture(e.pointerId);}catch{}e.preventDefault();});
+   tile.addEventListener('pointermove',e=>{if(!drag||drag.pointerId!==e.pointerId)return;if(Math.abs(e.clientX-drag.x)+Math.abs(e.clientY-drag.y)>6)drag.moved=true;});
+   const finish=async e=>{if(!drag||drag.pointerId!==e.pointerId)return;const d=drag;drag=null;host.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));if(!d.moved)return;suppressClick=true;const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('#detailQuickMapGrid [data-detail-quick-map]');if(target){const to=filtered.findIndex(m=>m.id===target.dataset.detailQuickMap);if(to>=0&&d.from>=0&&to!==d.from){const next=normalizeQuickOrder(filtered);[next[d.from],next[to]]=[next[to],next[d.from]];await saveQuickOrder(next,filtered);}}setTimeout(()=>{suppressClick=false;},250);};
+   tile.addEventListener('pointerup',finish);tile.addEventListener('pointercancel',()=>{drag=null;tile.classList.remove('dragging');});tile.addEventListener('click',e=>{if(suppressClick){e.preventDefault();e.stopPropagation();}});
+  });
+ }
 }
 function showGallery(){ $('mapGalleryPage').hidden=false;$('mapDetailPage').hidden=true;renderGallery();renderCustomSiteTexts(); }
 function siteTextFor(area,fallback=''){const rows=siteTexts.filter(t=>t.area===area&&t.enabled!==false).sort((a,b)=>(Number(a.sort_order)||0)-(Number(b.sort_order)||0));return rows.length?rows[0].text:fallback;}
@@ -185,15 +196,15 @@ function normalizeQuickOrder(ordered){
  const compact=[...saved.filter(id=>ids.includes(id)),...ids.filter(id=>!saved.includes(id))];
  return [...compact.slice(0,8),...Array(Math.max(0,8-compact.length)).fill(null)].slice(0,8);
 }
-async function saveQuickOrder(order){
+async function saveQuickOrder(order,scope=maps){
  if(!isAdmin()||!db)return false;
  const normalized=Array.from({length:8},(_,i)=>order[i]||null);
- // Keep the same arrangement no matter which map is currently selected.
- const results=await Promise.all(maps.map(m=>db.from('maps').update({quick_order:normalized}).eq('id',m.id)));
+ const targets=(scope||maps).filter(m=>maps.some(x=>x.id===m.id));
+ const results=await Promise.all(targets.map(m=>db.from('maps').update({quick_order:normalized}).eq('id',m.id)));
  const failed=results.find(r=>r.error);
  if(failed){toast('Không lưu được vị trí ô. Hãy chạy quick-order-migration.sql và kiểm tra quyền quản trị Supabase. '+failed.error.message);return false;}
- maps.forEach(m=>{m.quick_order=normalized.slice();});
- renderGallery();toast('Đã lưu vị trí các ô biểu tượng.');return true;
+ targets.forEach(m=>{m.quick_order=normalized.slice();});
+ renderGallery();renderMapList();renderDetailQuickMaps();toast('Đã lưu vị trí bản đồ nhanh cho độ khó đang chọn.');return true;
 }
 function renderGallery(){
  const q=($('gallerySearch')?.value||'').toLowerCase(),d=$('galleryDifficulty')?.value||'all';
@@ -233,7 +244,7 @@ function renderGallery(){
          if(!drag.moved)return;
          suppressClick=true;
          const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('#quickMapGrid [data-slot-index]');
-         if(target){const to=Number(target.dataset.slotIndex);if(Number.isInteger(to)&&to>=0&&to<8&&to!==drag.from){const next=normalizeQuickOrder(ordered);[next[drag.from],next[to]]=[next[to],next[drag.from]];await saveQuickOrder(next);}}
+         if(target){const to=Number(target.dataset.slotIndex);if(Number.isInteger(to)&&to>=0&&to<8&&to!==drag.from){const next=normalizeQuickOrder(difficultyMaps);[next[drag.from],next[to]]=[next[to],next[drag.from]];await saveQuickOrder(next,difficultyMaps);}}
          setTimeout(()=>{suppressClick=false;},250);
        };
        tile.addEventListener('pointerup',finish);tile.addEventListener('pointercancel',()=>{pointerDrag=null;tile.classList.remove('dragging');});
