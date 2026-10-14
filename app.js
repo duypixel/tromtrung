@@ -134,7 +134,8 @@ async function saveQuickOrder(order){
 function renderGallery(){
  const q=($('gallerySearch')?.value||'').toLowerCase(),d=$('galleryDifficulty')?.value||'all';
  const ordered=maps.slice().sort((a,b)=>(Number(a.sort_order)||0)-(Number(b.sort_order)||0));
- const filtered=ordered.filter(m=>(m.name||'').toLowerCase().includes(q)&&(d==='all'||m.difficulty===d));
+ const difficultyMaps=ordered.filter(m=>d==='all'||m.difficulty===d);
+ const filtered=difficultyMaps.filter(m=>(m.name||'').toLowerCase().includes(q));
  const host=$('mapGallery'),quick=$('quickMapGrid');if(!host)return;
  if(!filtered.length){host.innerHTML='<div class="empty">Chưa có bản đồ phù hợp. Hãy kết nối Supabase hoặc thêm bản đồ trong quản trị.</div>';if(quick)quick.innerHTML='<div class="empty">Chưa có sơ đồ</div>';return;}
  const defaultId=(ordered[0]||{}).id;
