@@ -145,15 +145,17 @@ function syncDifficultyPills(target){const select=$(target);if(!select)return;do
 function renderMapList(){const q=$('searchMap').value.toLowerCase(),d=$('difficulty').value;const filtered=maps.filter(m=>(m.name||'').toLowerCase().includes(q)&&(d==='all'||m.difficulty===d));$('mapCount').textContent=filtered.length;if(!filtered.length){$('mapList').innerHTML='<div class="empty">Chưa có bản đồ phù hợp. Quản trị viên có thể thêm bản đồ mới.</div>';renderDetailQuickMaps();return;}$('mapList').innerHTML=filtered.map(m=>`<button class="map-row ${m.id===currentMapId?'active':''}" data-map-id="${m.id}"><span class="map-thumb">${(m.thumbnail_url||m.image_url)?`<img src="${esc(m.thumbnail_url||m.image_url)}" alt="">`:'⌖'}</span><span class="map-card-copy"><strong>${esc(m.name)}</strong><small>${esc(m.area||'Lost Sanctum')} · ${esc(m.difficulty||'')}</small><small class="map-card-action">Mở bản đồ →</small></span></button>`).join('');document.querySelectorAll('[data-map-id]').forEach(b=>b.addEventListener('click',()=>selectMap(b.dataset.mapId)));renderDetailQuickMaps();}
 function renderDetailQuickMaps(){
  const host=$('detailQuickMapGrid');if(!host)return;
+ const difficulty=$('difficulty')?.value||'all';
  const ordered=maps.slice().sort((a,b)=>(Number(a.sort_order)||0)-(Number(b.sort_order)||0));
- if(!ordered.length){host.innerHTML='<div class="empty">Chưa có bản đồ</div>';return;}
- const active=byId(currentMapId)||ordered[0],slots=Array.isArray(active?.quick_slots)?active.quick_slots:[],order=normalizeQuickOrder(ordered);
+ const filtered=ordered.filter(m=>difficulty==='all'||m.difficulty===difficulty);
+ if(!filtered.length){host.innerHTML='<div class="empty">Không có bản đồ ở độ khó này</div>';return;}
+ const active=byId(currentMapId)||filtered[0],slots=Array.isArray(active?.quick_slots)?active.quick_slots:[],order=normalizeQuickOrder(filtered);
  const layout=Array.from({length:9},(_,i)=>i===4?null:order[i<4?i:i-1]||null);
  host.innerHTML=layout.map((id,i)=>{
   if(i===4){const door=slots[4]?.url;return `<div class="detail-quick-tile door" title="Cửa chính"><img src="${door?esc(door):''}" alt="" ${door?'':'hidden'}><span class="quick-tile-empty" ${door?'hidden':''}>🚪</span></div>`;}
   const m=byId(id),custom=slots[i]?.url,image=custom||(m&&(m.thumbnail_url||m.image_url));
   if(!m)return '<div class="detail-quick-tile" aria-label="Ô trống"><span class="quick-tile-empty">⌖</span></div>';
-  return `<button type="button" class="detail-quick-tile ${m.id===currentMapId?'active':''}" data-detail-quick-map="${m.id}" title="${esc(m.name)}" aria-label="Mở bản đồ ${esc(m.name)}">${image?`<img src="${esc(image)}" alt="">`:'<span class="quick-tile-empty">⌖</span>'}<span class="quick-tile-number">${ordered.findIndex(x=>x.id===m.id)+1}</span></button>`;
+  return `<button type="button" class="detail-quick-tile ${m.id===currentMapId?'active':''}" data-detail-quick-map="${m.id}" title="${esc(m.name)}" aria-label="Mở bản đồ ${esc(m.name)}">${image?`<img src="${esc(image)}" alt="">`:'<span class="quick-tile-empty">⌖</span>'}<span class="quick-tile-number">${filtered.findIndex(x=>x.id===m.id)+1}</span></button>`;
  }).join('');
  host.querySelectorAll('[data-detail-quick-map]').forEach(button=>button.addEventListener('click',()=>selectMap(button.dataset.detailQuickMap)));
 }
@@ -271,7 +273,7 @@ async function replaceMapImage(){
 async function replaceMapThumbnail(){
  if(!isAdmin()||!db)return;const id=$('assetMap').value,m=byId(id),file=$('replacementThumbFile').files[0];if(!m||!file)return msg('assetMessage','Chọn bản đồ và ảnh thu nhỏ trước.','error');
  if(!['image/png','image/jpeg','image/webp'].includes(file.type))return msg('assetMessage','Ảnh thu nhỏ chỉ hỗ trợ PNG, JPG hoặc WEBP.','error');if(file.size>12*1024*1024)return msg('assetMessage','Ảnh phải nhỏ hơn 12 MB.','error');
- $('replaceMapThumbnail').disabled=true;try{const ext=file.type==='image/jpeg'?'jpg':file.type.split('/')[1];const path=`${session.user.id}/${id}-thumbnail-${crypto.randomUUID()}.${ext}`;const url=await uploadAsset(file,path);const {data,error}=await db.from('maps').update({thumbnail_url:url}).eq('id',id).select().single();if(error)throw error;Object.assign(m,data);$('replacementThumbFile').value='';renderMapList();msg('assetMessage','Đã cập nhật ảnh thu nhỏ.','success');toast('Đã thay ảnh thu nhỏ của thẻ bản đồ.');}catch(e){msg('assetMessage','Không thể thay ảnh thu nhỏ: '+e.message,'error');}finally{$('replaceMapThumbnail').disabled=false;}
+ $('replaceMapThumbnail').disabled=true;try{const ext=file.type==='image/jpeg'?'jpg':file.type.split('/')[1];const path=`${session.user.id}/${id}-thumbnail-${crypto.randomUUID()}.${ext}`;const url=await uploadAsset(file,path);const {data,error}=await db.from('maps').update({thumbnail_url:url}).eq('id',id).select().single();if(error)throw error;Object.assign(m,data);$('replacementThumbFile').value='';renderMapList();renderGallery();renderDetailQuickMaps();refreshAdminLists();msg('assetMessage','Đã cập nhật ảnh thu nhỏ.','success');toast('Đã thay ảnh thu nhỏ của thẻ bản đồ.');}catch(e){msg('assetMessage','Không thể thay ảnh thu nhỏ: '+e.message,'error');}finally{$('replaceMapThumbnail').disabled=false;}
 }
 async function uploadMapIcon(type){
  if(!isAdmin()||!db)return;
