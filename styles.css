@@ -256,3 +256,32 @@
 .detail-quick-grid .detail-quick-tile.dragging{opacity:.45;transform:scale(.96);border-color:#ffb23d;box-shadow:0 0 0 2px #ff9d3266}
 .detail-quick-hint{line-height:1.45}
 @media(max-width:850px){.detail-quick-hint.admin-drag-hint{display:block}}
+
+
+/* Global themes selected by the administrator. */
+:root[data-theme="gold"]{--bg:#11100d;--panel:#191813;--panel2:#211f18;--line:#343025;--text:#f6f0dc;--muted:#aaa38f;--gold:#f2c84b;--gold2:#ffdf76}
+:root[data-theme="violet"]{--bg:#100d1a;--panel:#191326;--panel2:#251b37;--line:#423452;--text:#f7f0ff;--muted:#b7a8cb;--gold:#c59aff;--gold2:#e2c9ff}
+:root[data-theme="ocean"]{--bg:#07151d;--panel:#0d202b;--panel2:#12303d;--line:#244653;--text:#e9faff;--muted:#9ebcc8;--gold:#54d7ee;--gold2:#a0f0ff}
+:root[data-theme="forest"]{--bg:#0b1711;--panel:#122119;--panel2:#1b3022;--line:#2c4933;--text:#effff1;--muted:#a7c1ad;--gold:#8cdb83;--gold2:#c4ffb8}
+:root[data-theme="light"]{--bg:#f0f2f7;--panel:#ffffff;--panel2:#e7eaf2;--line:#cbd0dc;--text:#202437;--muted:#626b80;--gold:#6b52d8;--gold2:#8b79ef}
+:root[data-theme="light"] body{background-color:var(--bg);color:var(--text)}
+:root[data-theme="light"] .topbar{background:#ffffffdf}
+:root[data-theme="light"] .sidebar,:root[data-theme="light"] .gallery-guide{background:#ffffffc9}
+:root[data-theme="light"] .control,:root[data-theme="light"] .admin-map-item,:root[data-theme="light"] .point-item,:root[data-theme="light"] .map-row,:root[data-theme="light"] .gallery-card,:root[data-theme="light"] .modal-card{background:#fff;color:var(--text);border-color:var(--line)}
+:root[data-theme="light"] .button.ghost,:root[data-theme="light"] .icon-button,:root[data-theme="light"] .mini-button{background:#f1f2f8;color:var(--text);border-color:var(--line)}
+:root[data-theme="light"] .quick-map,:root[data-theme="light"] .detail-quick-tile,:root[data-theme="light"] .admin-order-tile{background:linear-gradient(145deg,#fff,#e9eaf2);color:var(--text);border-color:var(--line)}
+:root[data-theme="light"] .field-label,:root[data-theme="light"] .check-line,:root[data-theme="light"] .legend label{color:var(--text)}
+body[data-background="default"]{background-image:radial-gradient(ellipse at 75% -20%,#39301a 0,transparent 42%)}
+body[data-background="nebula"]{background-image:radial-gradient(ellipse at 10% 5%,#6034a866 0,transparent 38%),radial-gradient(ellipse at 90% 20%,#174b8a66 0,transparent 40%),linear-gradient(135deg,#090813,#171025 55%,#08131d);background-attachment:fixed}
+body[data-background="stars"]{background-color:#070b18;background-image:radial-gradient(2px 2px at 20px 30px,#ffffff99 50%,transparent 60%),radial-gradient(1px 1px at 80px 120px,#b9d5ff99 50%,transparent 60%),radial-gradient(1px 1px at 140px 70px,#ffffff88 50%,transparent 60%),linear-gradient(160deg,#070b18,#111a33 65%,#080a15);background-size:180px 160px,230px 210px,270px 220px,cover;background-attachment:fixed}
+body[data-background="sunset"]{background-image:radial-gradient(ellipse at 50% 0%,#f58b6a55 0,transparent 38%),linear-gradient(145deg,#1a101d,#342039 52%,#11131d);background-attachment:fixed}
+.admin-quick-order-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:12px 0}
+.admin-order-tile{position:relative;min-width:0;min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:7px 5px;border:1px solid #393449;border-radius:12px;background:linear-gradient(145deg,#242137,#141322);color:var(--text);touch-action:none;user-select:none;-webkit-user-select:none;overflow:hidden}
+.admin-order-tile .admin-order-thumb{width:42px;height:42px;display:grid;place-items:center;font-size:24px}
+.admin-order-tile img{width:100%;height:100%;object-fit:contain;pointer-events:none}
+.admin-order-tile small{font-size:10px;line-height:1.25;text-align:center;overflow-wrap:anywhere;max-width:100%;color:var(--muted)}
+.admin-order-tile.door{border-color:#ff9d32;color:#ffb957;cursor:default}
+.admin-order-tile.empty-slot{border-style:dashed;opacity:.65}
+.admin-order-tile.dragging{opacity:.4;transform:scale(.96);border-color:var(--gold);box-shadow:0 0 0 2px #ff9d3266}
+#appearanceBackgroundPreview{overflow-wrap:anywhere}
+@media(max-width:480px){.admin-order-tile{min-height:76px;padding:5px 3px}.admin-order-tile .admin-order-thumb{width:32px;height:32px}.admin-order-tile small{font-size:9px}}
