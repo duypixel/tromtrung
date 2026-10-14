@@ -53,6 +53,22 @@ function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt
 function isAdmin(){return !!session;}
 function byId(id){return maps.find(m=>m.id===id);}
 function setConnection(text,online=false){$('connection').textContent=text;$('connection').classList.toggle('online',online);}
+async function ensureSupabaseLibrary(){
+ if(window.supabase?.createClient)return window.supabase;
+ const sources=['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2','https://unpkg.com/@supabase/supabase-js@2'];
+ for(const src of sources){
+  try{
+   await new Promise((resolve,reject)=>{
+    const script=document.createElement('script');script.src=src;script.async=true;
+    script.onload=()=>window.supabase?.createClient?resolve():reject(new Error('Thư viện tải nhưng không có createClient'));
+    script.onerror=()=>reject(new Error('Không tải được '+src));
+    document.head.appendChild(script);
+   });
+   if(window.supabase?.createClient)return window.supabase;
+  }catch(error){console.warn('Không tải được Supabase từ nguồn này:',error);}
+ }
+ throw new Error('Không tải được thư viện Supabase từ CDN. Kiểm tra kết nối mạng hoặc tiện ích chặn nội dung rồi tải lại trang.');
+}
 async function init(){
   $('mapCanvas').insertAdjacentHTML('beforeend','<div id="markerLayer" class="marker-layer"></div>');
   document.querySelectorAll('.difficulty-pills').forEach(group=>group.querySelectorAll('[data-difficulty]').forEach(btn=>btn.addEventListener('click',()=>{const target=group.dataset.difficultyTarget;const select=$(target);if(!select)return;const value=select.value===btn.dataset.difficulty?'all':btn.dataset.difficulty;select.value=value;syncDifficultyPills(target);if(target==='galleryDifficulty')renderGallery();else renderMapList();})));syncDifficultyPills('galleryDifficulty');syncDifficultyPills('difficulty');
@@ -91,11 +107,11 @@ async function init(){
   let pan=null;const vp=$('mapViewport');vp.addEventListener('pointerdown',e=>{if(e.target.closest('.marker')||placingPoint||e.button!==0||$('mapImage').hidden)return;pan={x:e.clientX,y:e.clientY,left:vp.scrollLeft,top:vp.scrollTop,moved:false};vp.classList.add('panning');vp.setPointerCapture(e.pointerId);});vp.addEventListener('pointermove',e=>{if(!pan)return;const dx=e.clientX-pan.x,dy=e.clientY-pan.y;if(Math.abs(dx)+Math.abs(dy)>3)pan.moved=true;vp.scrollLeft=pan.left-dx;vp.scrollTop=pan.top-dy;});const endPan=()=>{if(pan){pan=null;vp.classList.remove('panning');}};vp.addEventListener('pointerup',endPan);vp.addEventListener('pointercancel',endPan);$('pointMap').addEventListener('change',async e=>{if(e.target.value)await selectMap(e.target.value);});
   document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
   if(!configured){setConnection('Chưa cấu hình dữ liệu');renderMapList();renderGallery();$('mapList').innerHTML='<div class="empty">Website đã sẵn sàng về giao diện. Hãy làm theo README để kết nối cơ sở dữ liệu Supabase, sau đó các bản đồ trực tuyến sẽ hiện ở đây.</div>';return;}
-  try{db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);const {data:{session:s}}=await db.auth.getSession();session=s;updateAuthUI();await loadMaps();db.auth.onAuthStateChange((_event,s)=>{session=s;updateAuthUI();});db.channel('map-live-sync').on('postgres_changes',{event:'*',schema:'public',table:'maps'},()=>loadMaps()).on('postgres_changes',{event:'*',schema:'public',table:'map_points'},()=>currentMapId&&loadPoints(currentMapId)).subscribe();setConnection('Đã kết nối dữ liệu',true);}catch(e){setConnection('Lỗi kết nối');console.error(e);}
+  try{await ensureSupabaseLibrary();db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);const {data:{session:s}}=await db.auth.getSession();session=s;updateAuthUI();await loadMaps();db.auth.onAuthStateChange((_event,s)=>{session=s;updateAuthUI();});db.channel('map-live-sync').on('postgres_changes',{event:'*',schema:'public',table:'maps'},()=>loadMaps()).on('postgres_changes',{event:'*',schema:'public',table:'map_points'},()=>currentMapId&&loadPoints(currentMapId)).subscribe();setConnection('Đã kết nối dữ liệu',true);}catch(e){setConnection('Lỗi kết nối');console.error('Không thể khởi tạo Supabase:',e);msg('authMessage',e.message||'Không thể kết nối Supabase. Kiểm tra mạng và tải lại trang.','error');}
 }
 function openAdmin(){ $('adminModal').classList.add('open');$('adminModal').setAttribute('aria-hidden','false');if(!configured){$('authPanel').hidden=false;$('editorPanel').hidden=true;msg('authMessage','Bạn cần cấu hình Supabase theo hướng dẫn trong README trước khi đăng nhập.','error');} }
 function closeAdmin(){$('adminModal').classList.remove('open');$('adminModal').setAttribute('aria-hidden','true');placingPoint=false;$('mapImage').classList.remove('placing');}
-async function login(){if(!db)return msg('authMessage','Chưa cấu hình Supabase. Xem README.','error');const email=$('email').value.trim(),password=$('password').value;if(!email||!password)return msg('authMessage','Nhập email và mật khẩu.','error');$('loginButton').disabled=true;msg('authMessage','Đang đăng nhập…');const {data,error}=await db.auth.signInWithPassword({email,password});$('loginButton').disabled=false;if(error)return msg('authMessage',error.message,'error');session=data.session;updateAuthUI();await loadMaps();msg('authMessage','Đăng nhập thành công.','success');}
+async function login(){if(!configured)return msg('authMessage','Thiếu SUPABASE_URL hoặc SUPABASE_ANON_KEY trong app.js.','error');if(!db)return msg('authMessage','Supabase chưa khởi tạo được. Hãy tải lại trang; nếu còn lỗi, kiểm tra kết nối mạng/CDN và Console của trình duyệt.','error');const email=$('email').value.trim(),password=$('password').value;if(!email||!password)return msg('authMessage','Nhập email và mật khẩu.','error');$('loginButton').disabled=true;msg('authMessage','Đang đăng nhập…');const {data,error}=await db.auth.signInWithPassword({email,password});$('loginButton').disabled=false;if(error)return msg('authMessage',error.message,'error');session=data.session;updateAuthUI();await loadMaps();msg('authMessage','Đăng nhập thành công.','success');}
 async function logout(){if(db)await db.auth.signOut();session=null;updateAuthUI();toast('Đã đăng xuất quản trị.');}
 function updateAuthUI(){$('authPanel').hidden=!!session;$('editorPanel').hidden=!session;if(session){$('signedInAs').textContent=session.user.email||'Quản trị viên';refreshAdminLists();}}
 function showMapLoadError(error){
