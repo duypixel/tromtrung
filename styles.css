@@ -285,3 +285,6 @@ body[data-background="sunset"]{background-image:radial-gradient(ellipse at 50% 0
 .admin-order-tile.dragging{opacity:.4;transform:scale(.96);border-color:var(--gold);box-shadow:0 0 0 2px #ff9d3266}
 #appearanceBackgroundPreview{overflow-wrap:anywhere}
 @media(max-width:480px){.admin-order-tile{min-height:76px;padding:5px 3px}.admin-order-tile .admin-order-thumb{width:32px;height:32px}.admin-order-tile small{font-size:9px}}
+
+/* Keep admin tabs usable on narrow screens. */
+.tabs{overflow-x:auto;white-space:nowrap;scrollbar-width:thin}.tabs .tab{flex:0 0 auto}
