@@ -68,7 +68,32 @@ function closeAdmin(){$('adminModal').classList.remove('open');$('adminModal').s
 async function login(){if(!db)return msg('authMessage','Chưa cấu hình Supabase. Xem README.','error');const email=$('email').value.trim(),password=$('password').value;if(!email||!password)return msg('authMessage','Nhập email và mật khẩu.','error');$('loginButton').disabled=true;msg('authMessage','Đang đăng nhập…');const {data,error}=await db.auth.signInWithPassword({email,password});$('loginButton').disabled=false;if(error)return msg('authMessage',error.message,'error');session=data.session;updateAuthUI();await loadMaps();msg('authMessage','Đăng nhập thành công.','success');}
 async function logout(){if(db)await db.auth.signOut();session=null;updateAuthUI();toast('Đã đăng xuất quản trị.');}
 function updateAuthUI(){$('authPanel').hidden=!!session;$('editorPanel').hidden=!session;if(session){$('signedInAs').textContent=session.user.email||'Quản trị viên';refreshAdminLists();}}
-async function loadMaps(){if(!db)return;const {data,error}=await db.from('maps').select('*').eq('published',true).order('sort_order',{ascending:true}).order('created_at',{ascending:false});if(error){console.error(error);return;}const publicMaps=data||[];if(session){const {data:all}=await db.from('maps').select('*').order('sort_order',{ascending:true}).order('created_at',{ascending:false});maps=all||publicMaps;}else maps=publicMaps;await loadSiteTexts();if(!currentMapId||!maps.some(m=>m.id===currentMapId)){currentMapId=maps[0]?.id||null;}renderMapList();renderGallery();refreshAdminLists();showGallery();if(currentMapId)await selectMap(currentMapId);else clearMap();}
+function showMapLoadError(error){
+ const detail=error?.message||'Không thể kết nối cơ sở dữ liệu.';
+ console.error('Không tải được danh sách bản đồ:',error);
+ setConnection('Lỗi tải dữ liệu');
+ const message='Không tải được dữ liệu bản đồ. Dữ liệu chưa bị xóa bởi thao tác cập nhật giao diện. Hãy kiểm tra kết nối Supabase. Chi tiết: '+detail;
+ ['mapGallery','quickMapGrid','mapList'].forEach(id=>{const el=$(id);if(el)el.innerHTML='<div class="empty">'+esc(message)+'</div>';});
+ clearMap();
+}
+function sortMapsClientSide(rows){return (rows||[]).slice().sort((a,b)=>(Number(a.sort_order)||0)-(Number(b.sort_order)||0)||String(b.created_at||'').localeCompare(String(a.created_at||'')));}
+async function loadMaps(){
+ if(!db)return;
+ let result=await db.from('maps').select('*').eq('published',true).order('sort_order',{ascending:true}).order('created_at',{ascending:false});
+ // If optional ordering columns are missing, retry the plain select instead of leaving "Đang tải bản đồ…" forever.
+ if(result.error){console.warn('Tải bản đồ với thứ tự mặc định thất bại; đang thử truy vấn dự phòng:',result.error.message);result=await db.from('maps').select('*').eq('published',true);}
+ if(result.error){showMapLoadError(result.error);return;}
+ const publicMaps=sortMapsClientSide(result.data);
+ if(session){
+  let allResult=await db.from('maps').select('*').order('sort_order',{ascending:true}).order('created_at',{ascending:false});
+  if(allResult.error)allResult=await db.from('maps').select('*');
+  maps=allResult.error?publicMaps:sortMapsClientSide(allResult.data);
+ }else maps=publicMaps;
+ await loadSiteTexts();
+ if(!currentMapId||!maps.some(m=>m.id===currentMapId))currentMapId=maps[0]?.id||null;
+ renderMapList();renderGallery();refreshAdminLists();showGallery();
+ if(currentMapId)await selectMap(currentMapId);else clearMap();
+}
 function syncDifficultyPills(target){const select=$(target);if(!select)return;document.querySelectorAll(`.difficulty-pills[data-difficulty-target="${target}"] [data-difficulty]`).forEach(btn=>{const active=select.value===btn.dataset.difficulty;btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',String(active));});}
 function renderMapList(){const q=$('searchMap').value.toLowerCase(),d=$('difficulty').value;const filtered=maps.filter(m=>(m.name||'').toLowerCase().includes(q)&&(d==='all'||m.difficulty===d));$('mapCount').textContent=filtered.length;if(!filtered.length){$('mapList').innerHTML='<div class="empty">Chưa có bản đồ phù hợp. Quản trị viên có thể thêm bản đồ mới.</div>';return;}$('mapList').innerHTML=filtered.map(m=>`<button class="map-row ${m.id===currentMapId?'active':''}" data-map-id="${m.id}"><span class="map-thumb">${(m.thumbnail_url||m.image_url)?`<img src="${esc(m.thumbnail_url||m.image_url)}" alt="">`:'⌖'}</span><span class="map-card-copy"><strong>${esc(m.name)}</strong><small>${esc(m.area||'Lost Sanctum')} · ${esc(m.difficulty||'')}</small><small class="map-card-action">Mở bản đồ →</small></span></button>`).join('');document.querySelectorAll('[data-map-id]').forEach(b=>b.addEventListener('click',()=>selectMap(b.dataset.mapId)));}
 function showGallery(){ $('mapGalleryPage').hidden=false;$('mapDetailPage').hidden=true;renderGallery();renderCustomSiteTexts(); }
