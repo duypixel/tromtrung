@@ -247,3 +247,12 @@
 .map-row .map-card-copy{padding:9px 10px;}
 @media(max-width:720px){.gallery-thumb{height:clamp(105px,22vw,155px)}.gallery-card-copy{padding:8px}.gallery-card-copy>strong{font-size:11px}}
 @media(max-width:390px){.gallery-thumb{height:clamp(130px,35vw,180px)}}
+
+/* Keep the home-page quick map as a true 3×3 grid on narrow mobile screens. */
+@media(max-width:720px){.gallery-guide.icon-only-guide #quickMapGrid.quick-map-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px!important}.gallery-guide.icon-only-guide #quickMapGrid .quick-map{min-width:0;min-height:52px;padding:3px;border-radius:8px}.gallery-guide.icon-only-guide #quickMapGrid .quick-thumb{width:28px;height:28px}}
+@media(max-width:390px){.gallery-guide.icon-only-guide #quickMapGrid.quick-map-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+/* Drag-and-drop controls for admins on the map-detail quick grid. */
+.detail-quick-grid .detail-quick-tile[data-detail-quick-map]{touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer}
+.detail-quick-grid .detail-quick-tile.dragging{opacity:.45;transform:scale(.96);border-color:#ffb23d;box-shadow:0 0 0 2px #ff9d3266}
+.detail-quick-hint{line-height:1.45}
+@media(max-width:850px){.detail-quick-hint.admin-drag-hint{display:block}}
