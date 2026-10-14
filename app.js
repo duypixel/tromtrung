@@ -160,7 +160,7 @@ function renderDetailQuickMaps(){
  }).join('');
  host.querySelectorAll('[data-detail-quick-map]').forEach(button=>button.addEventListener('click',()=>selectMap(button.dataset.detailQuickMap)));
  const hint=document.querySelector('.detail-quick-hint');
- if(hint)hint.textContent=session?'Quản trị: kéo các ô để đổi vị trí. Ô trung tâm là cửa chính và luôn cố định.':'Chọn một ô để chuyển bản đồ.';
+ if(hint){hint.textContent=session?'Quản trị: kéo các ô để đổi vị trí. Ô trung tâm là cửa chính và luôn cố định.':'Chọn một ô để chuyển bản đồ.';hint.classList.toggle('admin-drag-hint',!!session);}
  if(session){
   let drag=null,suppressClick=false;
   host.querySelectorAll('[data-detail-quick-map]').forEach(tile=>{
