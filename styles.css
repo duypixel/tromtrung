@@ -136,3 +136,21 @@
   .gallery-thumb{height:115px}
   .gallery-intro h1{font-size:18px}
 }
+
+
+/* YouTube channel promotion — matches the dark purple/gold Duy Pixel map theme. */
+.youtube-promo{position:relative;display:flex;align-items:center;gap:14px;max-width:1900px;margin:0 auto 14px;padding:13px 17px;border:1px solid #4b2d38;border-radius:16px;background:linear-gradient(105deg,#29151f 0%,#1a1729 58%,#171626 100%);color:#fff;text-decoration:none;box-shadow:0 8px 24px #0003;transition:border-color .18s,transform .18s,box-shadow .18s}
+.youtube-promo:hover{border-color:#ff5365;transform:translateY(-1px);box-shadow:0 10px 28px #0005,0 0 20px #ff334420}
+.youtube-play{flex:none;width:43px;height:31px;display:grid;place-items:center;padding-left:2px;border-radius:9px;background:#ff3048;color:#fff;font-size:15px;box-shadow:0 4px 15px #ff304833}
+.youtube-copy{display:flex;flex-direction:column;gap:4px;min-width:0}
+.youtube-copy strong{font-size:12px;letter-spacing:.8px;line-height:1.35}
+.youtube-copy small{font-size:11px;color:#bbb5c9;line-height:1.4}
+.youtube-cta{margin-left:auto;flex:none;display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid #ff566a88;border-radius:9px;background:#ff304817;color:#ff8b9a;font-size:10px;font-weight:900;letter-spacing:.5px}
+@media(max-width:720px){
+ .youtube-promo{gap:8px;padding:9px;margin-bottom:9px;border-radius:12px}
+ .youtube-play{width:32px;height:25px;border-radius:7px;font-size:12px}
+ .youtube-copy strong{font-size:9px;letter-spacing:.25px}
+ .youtube-copy small{font-size:9px}
+ .youtube-cta{padding:7px 6px;font-size:8px;gap:3px;letter-spacing:0}
+}
+@media(max-width:390px){.youtube-copy small{display:none}.youtube-cta{font-size:7px}}
