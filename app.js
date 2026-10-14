@@ -66,8 +66,8 @@ async function init(){
   document.querySelectorAll('[data-reset-icon]').forEach(b=>b.addEventListener('click',()=>resetMapIcon(b.dataset.resetIcon)));$('logoutButton').addEventListener('click',logout);$('saveMap').addEventListener('click',saveMap);$('placePoint').addEventListener('click',startPlacePoint);
   $('searchMap').addEventListener('input',renderMapList);$('difficulty').addEventListener('change',()=>{syncDifficultyPills('difficulty');renderMapList();});
   document.querySelectorAll('[data-filter]').forEach(el=>el.addEventListener('change',()=>{visibleTypes[el.dataset.filter]=el.checked;renderMarkers();}));
-  $('toggleMapLegend').addEventListener('click',()=>{const panel=$('mapLegendPanel'),button=$('toggleMapLegend'),expanded=button.getAttribute('aria-expanded')==='true';panel.classList.toggle('collapsed',expanded);button.setAttribute('aria-expanded',String(!expanded));$('legendToggleArrow').textContent=expanded?'+':'−';});
-  $('showAllMarkers').addEventListener('click',()=>{Object.keys(visibleTypes).forEach(type=>{visibleTypes[type]=true;});document.querySelectorAll('[data-filter]').forEach(el=>{el.checked=true;});renderMarkers();});
+  $('toggleMapLegend')?.addEventListener('click',()=>{const panel=$('mapLegendPanel'),button=$('toggleMapLegend'),arrow=$('legendToggleArrow');if(!panel)return;const expanded=button.getAttribute('aria-expanded')==='true';panel.classList.toggle('collapsed',expanded);button.setAttribute('aria-expanded',String(!expanded));if(arrow)arrow.textContent=expanded?'+':'−';});
+  $('showAllMarkers')?.addEventListener('click',()=>{Object.keys(visibleTypes).forEach(type=>{visibleTypes[type]=true;});document.querySelectorAll('[data-filter]').forEach(el=>{el.checked=true;});renderMarkers();});
   $('zoomIn').addEventListener('click',()=>setZoom(zoom+.15));$('zoomOut').addEventListener('click',()=>setZoom(zoom-.15));$('zoomReset').addEventListener('click',()=>setZoom(1));
   // Zoom theo vị trí con trỏ: giữ nguyên điểm bản đồ đang nằm dưới chuột.
   $('mapViewport').addEventListener('wheel',e=>{
