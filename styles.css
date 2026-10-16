@@ -288,3 +288,17 @@ body[data-background="sunset"]{background-image:radial-gradient(ellipse at 50% 0
 
 /* Keep admin tabs usable on narrow screens. */
 .tabs{overflow-x:auto;white-space:nowrap;scrollbar-width:thin}.tabs .tab{flex:0 0 auto}
+
+
+/* Visit analytics panel */
+.visit-stats-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0}
+.visit-stat-card{padding:15px;border:1px solid var(--line);border-radius:12px;background:#100f0c}
+.visit-stat-card span{display:block;color:var(--muted);font-size:11px;line-height:1.5}
+.visit-stat-card strong{display:block;color:var(--gold);font-size:25px;margin-top:7px}
+.visit-daily-bars{display:grid;gap:11px;margin:14px 0}
+.visit-day{display:grid;grid-template-columns:76px minmax(0,1fr) 45px;align-items:center;gap:10px;font-size:11px}
+.visit-day-label{color:var(--muted)}
+.visit-day strong{text-align:right;color:var(--text)}
+.visit-bar-track{height:10px;border-radius:99px;background:#ffffff0b;overflow:hidden}
+.visit-bar{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--gold),#e9a93c)}
+@media(max-width:480px){.visit-stats-grid{grid-template-columns:1fr 1fr}.visit-stat-card{padding:11px}.visit-stat-card strong{font-size:21px}.visit-day{grid-template-columns:64px minmax(0,1fr) 35px;gap:7px}}
